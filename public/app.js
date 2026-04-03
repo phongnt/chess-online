@@ -4,12 +4,13 @@
 
   // State
   let chess = new Chess();
-  let myColor = null;
+  let myColor = null; // 'w' or 'b'
   let myName = '';
   let opponentName = '';
   let selectedSquare = null;
   let lastMove = null;
   let gameActive = false;
+  let moveCount = 0;
 
   // DOM refs
   const lobbyEl = $('#lobby');
@@ -19,6 +20,8 @@
   const statusEl = $('#status-text');
   const moveListEl = $('#move-list');
   const chatMsgsEl = $('#chat-messages');
+  const myClockEl = $('#my-clock');
+  const oppClockEl = $('#opponent-clock');
 
   // Piece unicode map
   const PIECE = Chess.UNICODE;
@@ -36,7 +39,6 @@
     socket.emit('join-room', { roomId, playerName: myName });
   });
 
-  // Enter key support
   $('#player-name').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') $('#btn-create').click();
   });
@@ -53,10 +55,9 @@
     $('#lan-url').textContent = window.location.href;
   });
 
-  socket.on('room-joined', ({ roomId, color, opponentName: oppName, moves }) => {
+  socket.on('room-joined', ({ color, opponentName: oppName, moves }) => {
     myColor = color;
     opponentName = oppName;
-    // Replay moves
     for (const m of moves) chess.move(m);
     startGame();
   });
@@ -70,11 +71,28 @@
     const result = chess.move(move);
     if (result) {
       lastMove = { from: move.from, to: move.to };
+      selectedSquare = null;
       renderBoard();
       addMoveToList(result.san);
       updateStatus();
       playSound(result.captured ? 'capture' : 'move');
     }
+  });
+
+  socket.on('time-update', ({ w, b }) => {
+    updateClockDisplay(w, b);
+  });
+
+  socket.on('flag-fall', ({ loser, winner }) => {
+    gameActive = false;
+    const winnerName = winner === myColor ? 'You' : opponentName;
+    const loserLabel = loser === 'w' ? 'White' : 'Black';
+    statusEl.textContent = `${loserLabel} ran out of time!`;
+    showModal(
+      winner === myColor ? 'You Win!' : 'You Lose',
+      `${loserLabel} ran out of time.`
+    );
+    $('#btn-rematch').classList.remove('hidden');
   });
 
   socket.on('chat', (msg) => {
@@ -105,9 +123,13 @@
     lastMove = null;
     selectedSquare = null;
     moveListEl.innerHTML = '';
+    moveCount = 0;
     gameActive = true;
     $('#btn-rematch').classList.add('hidden');
     $('#btn-rematch').textContent = 'Rematch';
+    $('#btn-rematch').disabled = false;
+    $('#my-name').textContent = `${myName} (${myColor === 'w' ? 'White' : 'Black'})`;
+    $('#opponent-name').textContent = `${opponentName} (${myColor === 'w' ? 'Black' : 'White'})`;
     renderBoard();
     updateStatus();
     addSystemMessage('New game started! Colors swapped.');
@@ -116,6 +138,30 @@
   socket.on('error-msg', (msg) => {
     alert(msg);
   });
+
+  // --- Clock ---
+  function formatTime(ms) {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  function updateClockDisplay(wMs, bMs) {
+    const myMs = myColor === 'w' ? wMs : bMs;
+    const oppMs = myColor === 'w' ? bMs : wMs;
+    myClockEl.textContent = formatTime(myMs);
+    oppClockEl.textContent = formatTime(oppMs);
+
+    // Highlight active clock
+    const activeTurn = chess.turn();
+    myClockEl.classList.toggle('active', activeTurn === myColor);
+    oppClockEl.classList.toggle('active', activeTurn !== myColor);
+
+    // Low time warning
+    myClockEl.classList.toggle('low-time', myMs < 60000);
+    oppClockEl.classList.toggle('low-time', oppMs < 60000);
+  }
 
   // --- Game ---
   function startGame() {
@@ -133,16 +179,13 @@
 
   function renderBoard() {
     boardEl.innerHTML = '';
-    const board = chess.board(); // 8 rows, top = rank 8
-
+    const board = chess.board();
     const rows = myColor === 'b' ? [...board].reverse() : board;
 
     for (let r = 0; r < 8; r++) {
       const cols = myColor === 'b' ? [...rows[r]].reverse() : rows[r];
       for (let f = 0; f < 8; f++) {
         const sq = document.createElement('div');
-
-        // Calculate actual file and rank
         const actualFile = myColor === 'b' ? 7 - f : f;
         const actualRank = myColor === 'b' ? r : 7 - r;
         const squareName = 'abcdefgh'[actualFile] + (actualRank + 1);
@@ -151,17 +194,14 @@
         sq.className = `square ${isLight ? 'light' : 'dark'}`;
         sq.dataset.square = squareName;
 
-        // Last move highlight
         if (lastMove && (squareName === lastMove.from || squareName === lastMove.to)) {
           sq.classList.add('last-move');
         }
 
-        // Selected
         if (selectedSquare === squareName) {
           sq.classList.add('selected');
         }
 
-        // Possible moves
         if (selectedSquare) {
           const possibleMoves = chess.moves({ square: selectedSquare, verbose: true });
           if (possibleMoves.some(m => m.to === squareName)) {
@@ -170,7 +210,6 @@
           }
         }
 
-        // Piece
         const piece = cols[f];
         if (piece) {
           const span = document.createElement('span');
@@ -183,7 +222,6 @@
         boardEl.appendChild(sq);
       }
     }
-
     updateCaptures();
   }
 
@@ -193,7 +231,6 @@
 
     const piece = chess.get(square);
 
-    // If a square is selected, try to move
     if (selectedSquare) {
       if (square === selectedSquare) {
         selectedSquare = null;
@@ -201,7 +238,6 @@
         return;
       }
 
-      // Check if this is a valid move
       const possibleMoves = chess.moves({ square: selectedSquare, verbose: true });
       const validMove = possibleMoves.find(m => m.to === square);
 
@@ -210,7 +246,6 @@
         return;
       }
 
-      // If clicking own piece, select it instead
       if (piece && piece.color === myColor) {
         selectedSquare = square;
         renderBoard();
@@ -222,7 +257,6 @@
       return;
     }
 
-    // Select own piece
     if (piece && piece.color === myColor) {
       selectedSquare = square;
       renderBoard();
@@ -230,7 +264,6 @@
   }
 
   function makeMove(from, to, moveInfo) {
-    // Handle promotion
     let promotion;
     if (moveInfo.piece === 'p' && (to[1] === '8' || to[1] === '1')) {
       promotion = promptPromotion();
@@ -249,6 +282,10 @@
       addMoveToList(result.san);
       updateStatus();
       playSound(result.captured ? 'capture' : 'move');
+
+      if (chess.isGameOver()) {
+        socket.emit('game-over');
+      }
     }
   }
 
@@ -283,8 +320,6 @@
     }
   }
 
-  // Move list
-  let moveCount = 0;
   function addMoveToList(san) {
     moveCount++;
     if (moveCount % 2 === 1) {
@@ -297,12 +332,9 @@
     span.className = 'move';
     span.textContent = san;
     moveListEl.appendChild(span);
-
-    // Pad if white's move (need placeholder for grid)
     moveListEl.scrollTop = moveListEl.scrollHeight;
   }
 
-  // Captures
   function updateCaptures() {
     const initial = { p: 8, n: 2, b: 2, r: 2, q: 1 };
     const count = { w: { p: 0, n: 0, b: 0, r: 0, q: 0 }, b: { p: 0, n: 0, b: 0, r: 0, q: 0 } };
@@ -403,7 +435,7 @@
     $('#modal-overlay').classList.add('hidden');
   });
 
-  // Sound effects (Web Audio API)
+  // Sound effects
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
   function playSound(type) {

@@ -191,7 +191,42 @@ button:active { opacity: 0.7; }
 }
 
 .player-name { font-weight: 600; }
-.player-captures { font-size: 1.1rem; letter-spacing: 1px; }
+.player-captures { font-size: 1.1rem; letter-spacing: 1px; flex: 1; }
+
+.clock {
+  font-family: 'Courier New', monospace;
+  font-size: 1.3rem;
+  font-weight: bold;
+  background: #1a1917;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  min-width: 5rem;
+  text-align: center;
+  color: #999;
+  border: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.clock.active {
+  color: #fff;
+  background: #2d2b28;
+  border-color: var(--accent);
+}
+
+.clock.low-time {
+  color: #ff4444;
+}
+
+.clock.active.low-time {
+  color: #ff4444;
+  border-color: #ff4444;
+  animation: pulse-red 1s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { background: #2d2b28; }
+  50% { background: rgba(255, 68, 68, 0.15); }
+}
 
 /* Side Panel */
 .side-panel {

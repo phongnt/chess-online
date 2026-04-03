@@ -337,7 +337,6 @@ const Chess = (() => {
           this._board[rank * 8 + 5] = this._board[rank * 8 + 7];
           this._board[rank * 8 + 7] = null;
         } else {
-          this._board[rank * 8 + 3] = this._board[rank * 8 + 1];  // wrong: should be from col 0
           this._board[rank * 8 + 3] = this._board[rank * 8 + 0];
           this._board[rank * 8 + 0] = null;
         }

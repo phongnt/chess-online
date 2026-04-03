@@ -10,11 +10,67 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Game rooms: roomId -> { white, black, chess state handled client-side }
+const INITIAL_TIME_MS = 10 * 60 * 1000; // 10 minutes
+
 const rooms = new Map();
 
 function generateRoomId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function createTimers() {
+  return {
+    w: INITIAL_TIME_MS,
+    b: INITIAL_TIME_MS,
+    activeColor: 'w',
+    lastTickAt: null, // set when game starts
+    interval: null,
+  };
+}
+
+function startClock(room) {
+  room.timers.lastTickAt = Date.now();
+  room.timers.activeColor = 'w';
+
+  room.timers.interval = setInterval(() => {
+    if (!room.timers.lastTickAt) return;
+    const now = Date.now();
+    const elapsed = now - room.timers.lastTickAt;
+    room.timers.lastTickAt = now;
+    const color = room.timers.activeColor;
+    room.timers[color] = Math.max(0, room.timers[color] - elapsed);
+
+    // Broadcast time every second
+    io.to(room.roomId).emit('time-update', {
+      w: Math.round(room.timers.w),
+      b: Math.round(room.timers.b),
+    });
+
+    if (room.timers[color] <= 0) {
+      clearInterval(room.timers.interval);
+      room.timers.interval = null;
+      const winner = color === 'w' ? 'b' : 'w';
+      io.to(room.roomId).emit('flag-fall', { loser: color, winner });
+    }
+  }, 200);
+}
+
+function switchClock(room) {
+  if (!room.timers.lastTickAt) return;
+  const now = Date.now();
+  const elapsed = now - room.timers.lastTickAt;
+  const color = room.timers.activeColor;
+  room.timers[color] = Math.max(0, room.timers[color] - elapsed);
+  room.timers.activeColor = color === 'w' ? 'b' : 'w';
+  room.timers.lastTickAt = now;
+}
+
+function stopClock(room) {
+  if (room.timers.interval) {
+    clearInterval(room.timers.interval);
+    room.timers.interval = null;
+  }
+  room.timers.lastTickAt = null;
 }
 
 io.on('connection', (socket) => {
@@ -22,15 +78,18 @@ io.on('connection', (socket) => {
 
   socket.on('create-room', (playerName) => {
     const roomId = generateRoomId();
-    rooms.set(roomId, {
+    const room = {
+      roomId,
       white: { id: socket.id, name: playerName },
       black: null,
       moves: [],
-    });
+      timers: createTimers(),
+    };
+    rooms.set(roomId, room);
     socket.join(roomId);
     socket.data.roomId = roomId;
-    socket.data.color = 'white';
-    socket.emit('room-created', { roomId, color: 'white' });
+    socket.data.color = 'w';
+    socket.emit('room-created', { roomId, color: 'w' });
     console.log(`Room ${roomId} created by ${playerName}`);
   });
 
@@ -47,17 +106,20 @@ io.on('connection', (socket) => {
     room.black = { id: socket.id, name: playerName };
     socket.join(roomId);
     socket.data.roomId = roomId;
-    socket.data.color = 'black';
+    socket.data.color = 'b';
 
     socket.emit('room-joined', {
       roomId,
-      color: 'black',
+      color: 'b',
       opponentName: room.white.name,
       moves: room.moves,
+      timers: { w: room.timers.w, b: room.timers.b },
     });
 
-    // Notify white that opponent joined
     io.to(room.white.id).emit('opponent-joined', { opponentName: playerName });
+
+    // Start the clock
+    startClock(room);
     console.log(`${playerName} joined room ${roomId}`);
   });
 
@@ -67,7 +129,20 @@ io.on('connection', (socket) => {
     if (!room) return;
 
     room.moves.push(move);
+    switchClock(room);
     socket.to(roomId).emit('move', move);
+
+    // Send updated times immediately after move
+    io.to(roomId).emit('time-update', {
+      w: Math.round(room.timers.w),
+      b: Math.round(room.timers.b),
+    });
+  });
+
+  socket.on('game-over', () => {
+    const roomId = socket.data.roomId;
+    const room = rooms.get(roomId);
+    if (room) stopClock(room);
   });
 
   socket.on('chat', (message) => {
@@ -78,7 +153,9 @@ io.on('connection', (socket) => {
 
   socket.on('resign', () => {
     const roomId = socket.data.roomId;
+    const room = rooms.get(roomId);
     if (!roomId) return;
+    if (room) stopClock(room);
     socket.to(roomId).emit('opponent-resigned');
   });
 
@@ -93,15 +170,26 @@ io.on('connection', (socket) => {
     const room = rooms.get(roomId);
     if (!room) return;
 
+    stopClock(room);
+
     // Swap colors
     const oldWhite = room.white;
-    room.white = { ...room.black, id: room.black.id };
-    room.black = { ...oldWhite, id: oldWhite.id };
+    const oldBlack = room.black;
+    room.white = { id: oldBlack.id, name: oldBlack.name };
+    room.black = { id: oldWhite.id, name: oldWhite.name };
     room.moves = [];
+    room.timers = createTimers();
 
-    // Tell each player their new color
-    io.to(room.white.id).emit('rematch-start', { color: 'white' });
-    io.to(room.black.id).emit('rematch-start', { color: 'black' });
+    // Update socket data
+    const whiteSocket = io.sockets.sockets.get(room.white.id);
+    const blackSocket = io.sockets.sockets.get(room.black.id);
+    if (whiteSocket) whiteSocket.data.color = 'w';
+    if (blackSocket) blackSocket.data.color = 'b';
+
+    io.to(room.white.id).emit('rematch-start', { color: 'w' });
+    io.to(room.black.id).emit('rematch-start', { color: 'b' });
+
+    startClock(room);
   });
 
   socket.on('disconnect', () => {
@@ -110,10 +198,9 @@ io.on('connection', (socket) => {
       socket.to(roomId).emit('opponent-disconnected');
       const room = rooms.get(roomId);
       if (room) {
-        // Remove player from room
+        stopClock(room);
         if (room.white?.id === socket.id) room.white = null;
         if (room.black?.id === socket.id) room.black = null;
-        // Clean up empty rooms
         if (!room.white && !room.black) rooms.delete(roomId);
       }
     }
@@ -123,7 +210,6 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  // Show LAN addresses
   const nets = os.networkInterfaces();
   console.log(`\n  Chess server running!\n`);
   console.log(`  Local:   http://localhost:${PORT}`);
