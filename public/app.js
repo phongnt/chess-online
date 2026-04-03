@@ -44,7 +44,7 @@
 
   $('#btn-join').addEventListener('click', () => {
     myName = $('#player-name').value.trim() || 'Player';
-    const roomId = $('#room-code').value.trim().toUpperCase();
+    const roomId = $('#room-code').value.trim();
     if (!roomId) return;
     socket.emit('join-room', { roomId, playerName: myName });
   });

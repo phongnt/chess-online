@@ -16,7 +16,7 @@ const INCREMENT_MS = 3000;
 const rooms = new Map();
 
 function generateRoomId() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return String(Math.floor(Math.random() * 900) + 100);
 }
 
 function createTimers(timeMs) {
