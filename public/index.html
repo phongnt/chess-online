@@ -30,6 +30,34 @@
     <p class="hint">Other players on your network can join at<br><span id="lan-url"></span></p>
   </div>
 
+  <!-- Color Pick Screen -->
+  <div id="pick-screen" class="hidden">
+    <h2>Choose your side</h2>
+    <p class="pick-hint">First to pick gets their choice!</p>
+    <div class="pick-options">
+      <button id="pick-white" class="pick-btn pick-white-btn">
+        <span class="pick-piece">&#9812;</span>
+        <span>White</span>
+      </button>
+      <button id="pick-black" class="pick-btn pick-black-btn">
+        <span class="pick-piece">&#9818;</span>
+        <span>Black</span>
+      </button>
+    </div>
+    <div class="time-select">
+      <label>Time control</label>
+      <div class="time-options">
+        <button class="time-btn" data-time="60000">1 min</button>
+        <button class="time-btn" data-time="180000">3 min</button>
+        <button class="time-btn" data-time="300000">5 min</button>
+        <button class="time-btn active" data-time="600000">10 min</button>
+        <button class="time-btn" data-time="900000">15 min</button>
+        <button class="time-btn" data-time="1800000">30 min</button>
+      </div>
+    </div>
+    <p class="pick-status" id="pick-status">Waiting for picks...</p>
+  </div>
+
   <!-- Game Screen -->
   <div id="game" class="hidden">
     <div class="game-layout">

@@ -1,20 +1,23 @@
 (() => {
   const socket = io();
   const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
 
   // State
   let chess = new Chess();
-  let myColor = null; // 'w' or 'b'
+  let myColor = null;
   let myName = '';
   let opponentName = '';
   let selectedSquare = null;
   let lastMove = null;
   let gameActive = false;
   let moveCount = 0;
+  let currentTimeMs = 600000;
 
   // DOM refs
   const lobbyEl = $('#lobby');
   const waitingEl = $('#waiting');
+  const pickEl = $('#pick-screen');
   const gameEl = $('#game');
   const boardEl = $('#board');
   const statusEl = $('#status-text');
@@ -23,7 +26,6 @@
   const myClockEl = $('#my-clock');
   const oppClockEl = $('#opponent-clock');
 
-  // Piece unicode map
   const PIECE = Chess.UNICODE;
 
   // --- Lobby ---
@@ -46,27 +48,106 @@
     if (e.key === 'Enter') $('#btn-join').click();
   });
 
-  // --- Socket events ---
-  socket.on('room-created', ({ roomId, color }) => {
-    myColor = color;
+  // --- Socket: lobby/waiting ---
+  socket.on('room-created', ({ roomId }) => {
     lobbyEl.classList.add('hidden');
     waitingEl.classList.remove('hidden');
     $('#room-code-display').textContent = roomId;
     $('#lan-url').textContent = window.location.href;
   });
 
-  socket.on('room-joined', ({ color, opponentName: oppName, moves }) => {
+  // --- Color Pick Phase ---
+  socket.on('enter-pick-phase', ({ players, timeMs }) => {
+    lobbyEl.classList.add('hidden');
+    waitingEl.classList.add('hidden');
+    gameEl.classList.add('hidden');
+    pickEl.classList.remove('hidden');
+
+    currentTimeMs = timeMs;
+    resetPickScreen();
+    setActiveTimeBtn(timeMs);
+    $('#pick-status').textContent = `${players.join(' vs ')} — pick your color!`;
+  });
+
+  function resetPickScreen() {
+    $('#pick-white').disabled = false;
+    $('#pick-white').classList.remove('taken', 'mine');
+    $('#pick-black').disabled = false;
+    $('#pick-black').classList.remove('taken', 'mine');
+  }
+
+  function setActiveTimeBtn(timeMs) {
+    $$('.time-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.time) === timeMs);
+    });
+  }
+
+  $('#pick-white').addEventListener('click', () => socket.emit('pick-color', 'w'));
+  $('#pick-black').addEventListener('click', () => socket.emit('pick-color', 'b'));
+
+  socket.on('color-picked', ({ color, playerName, playerId }) => {
+    const btn = color === 'w' ? $('#pick-white') : $('#pick-black');
+    btn.disabled = true;
+
+    if (playerId === socket.id) {
+      btn.classList.add('mine');
+      btn.querySelector('span:last-child').textContent = `${playerName} (you)`;
+    } else {
+      btn.classList.add('taken');
+      btn.querySelector('span:last-child').textContent = playerName;
+    }
+  });
+
+  socket.on('color-taken', (color) => {
+    const label = color === 'w' ? 'White' : 'Black';
+    $('#pick-status').textContent = `${label} was just taken! You get the other side.`;
+  });
+
+  // Time control buttons
+  $$('.time-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const timeMs = parseInt(btn.dataset.time);
+      currentTimeMs = timeMs;
+      setActiveTimeBtn(timeMs);
+      socket.emit('set-time', timeMs);
+    });
+  });
+
+  socket.on('time-changed', (timeMs) => {
+    currentTimeMs = timeMs;
+    setActiveTimeBtn(timeMs);
+  });
+
+  // --- Game Start ---
+  socket.on('game-start', ({ color, opponentName: oppName, timeMs }) => {
     myColor = color;
     opponentName = oppName;
-    for (const m of moves) chess.move(m);
-    startGame();
+    currentTimeMs = timeMs;
+    chess = new Chess();
+    lastMove = null;
+    selectedSquare = null;
+    moveCount = 0;
+    gameActive = true;
+
+    pickEl.classList.add('hidden');
+    gameEl.classList.remove('hidden');
+
+    moveListEl.innerHTML = '';
+    chatMsgsEl.innerHTML = '';
+    $('#btn-rematch').classList.add('hidden');
+    $('#btn-rematch').textContent = 'Rematch';
+    $('#btn-rematch').disabled = false;
+
+    const formattedTime = formatTime(timeMs);
+    myClockEl.textContent = formattedTime;
+    oppClockEl.textContent = formattedTime;
+
+    updatePlayerLabels();
+    renderBoard();
+    updateStatus();
   });
 
-  socket.on('opponent-joined', ({ opponentName: oppName }) => {
-    opponentName = oppName;
-    startGame();
-  });
-
+  // --- Socket: in-game ---
   socket.on('move', (move) => {
     const result = chess.move(move);
     if (result) {
@@ -85,7 +166,6 @@
 
   socket.on('flag-fall', ({ loser, winner }) => {
     gameActive = false;
-    const winnerName = winner === myColor ? 'You' : opponentName;
     const loserLabel = loser === 'w' ? 'White' : 'Black';
     statusEl.textContent = `${loserLabel} ran out of time!`;
     showModal(
@@ -117,25 +197,21 @@
     $('#btn-rematch').textContent = 'Accept Rematch';
   });
 
-  socket.on('rematch-start', ({ color }) => {
-    myColor = color;
-    chess = new Chess();
-    lastMove = null;
-    selectedSquare = null;
-    moveListEl.innerHTML = '';
-    moveCount = 0;
-    gameActive = true;
-    $('#btn-rematch').classList.add('hidden');
-    $('#btn-rematch').textContent = 'Rematch';
-    $('#btn-rematch').disabled = false;
-    updatePlayerLabels();
-    renderBoard();
-    updateStatus();
-    addSystemMessage('New game started! Colors swapped.');
-  });
-
   socket.on('error-msg', (msg) => {
     alert(msg);
+  });
+
+  // --- Rematch ---
+  $('#btn-rematch').addEventListener('click', () => {
+    const text = $('#btn-rematch').textContent;
+    if (text === 'Accept Rematch') {
+      socket.emit('accept-rematch');
+    } else {
+      socket.emit('offer-rematch');
+      $('#btn-rematch').textContent = 'Waiting...';
+      $('#btn-rematch').disabled = true;
+      addSystemMessage('Rematch offered');
+    }
   });
 
   // --- Clock ---
@@ -152,17 +228,14 @@
     myClockEl.textContent = formatTime(myMs);
     oppClockEl.textContent = formatTime(oppMs);
 
-    // Highlight active clock
     const activeTurn = chess.turn();
     myClockEl.classList.toggle('active', activeTurn === myColor);
     oppClockEl.classList.toggle('active', activeTurn !== myColor);
-
-    // Low time warning
     myClockEl.classList.toggle('low-time', myMs < 60000);
     oppClockEl.classList.toggle('low-time', oppMs < 60000);
   }
 
-  // --- Game ---
+  // --- Player labels ---
   function updatePlayerLabels() {
     $('#my-name').textContent = myName;
     $('#my-name').className = `player-name ${myColor === 'w' ? 'white-player' : 'black-player'}`;
@@ -170,18 +243,7 @@
     $('#opponent-name').className = `player-name ${myColor === 'w' ? 'black-player' : 'white-player'}`;
   }
 
-  function startGame() {
-    lobbyEl.classList.add('hidden');
-    waitingEl.classList.add('hidden');
-    gameEl.classList.remove('hidden');
-    gameActive = true;
-
-    updatePlayerLabels();
-
-    renderBoard();
-    updateStatus();
-  }
-
+  // --- Board ---
   function renderBoard() {
     boardEl.innerHTML = '';
     const board = chess.board();
@@ -202,11 +264,9 @@
         if (lastMove && (squareName === lastMove.from || squareName === lastMove.to)) {
           sq.classList.add('last-move');
         }
-
         if (selectedSquare === squareName) {
           sq.classList.add('selected');
         }
-
         if (selectedSquare) {
           const possibleMoves = chess.moves({ square: selectedSquare, verbose: true });
           if (possibleMoves.some(m => m.to === squareName)) {
@@ -368,7 +428,7 @@
     $('#opponent-captures').textContent = oppCaptures;
   }
 
-  // Chat
+  // --- Chat ---
   $('#btn-send-chat').addEventListener('click', sendChat);
   $('#chat-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendChat();
@@ -405,7 +465,7 @@
     return div.innerHTML;
   }
 
-  // Game buttons
+  // --- Resign ---
   $('#btn-resign').addEventListener('click', () => {
     if (!gameActive) return;
     if (confirm('Are you sure you want to resign?')) {
@@ -417,19 +477,7 @@
     }
   });
 
-  $('#btn-rematch').addEventListener('click', () => {
-    const text = $('#btn-rematch').textContent;
-    if (text === 'Accept Rematch') {
-      socket.emit('accept-rematch');
-    } else {
-      socket.emit('offer-rematch');
-      $('#btn-rematch').textContent = 'Waiting...';
-      $('#btn-rematch').disabled = true;
-      addSystemMessage('Rematch offered');
-    }
-  });
-
-  // Modal
+  // --- Modal ---
   function showModal(title, text) {
     $('#modal-title').textContent = title;
     $('#modal-text').textContent = text;
@@ -440,7 +488,7 @@
     $('#modal-overlay').classList.add('hidden');
   });
 
-  // Sound effects
+  // --- Sound ---
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
   function playSound(type) {
