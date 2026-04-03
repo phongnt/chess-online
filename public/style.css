@@ -156,7 +156,8 @@ button:active { opacity: 0.7; }
 .square.dark { background: var(--dark-sq); }
 .square.highlight { background: var(--highlight); }
 .square.selected { background: rgba(20, 85, 200, 0.45); }
-.square.last-move { background: rgba(155, 199, 0, 0.41); }
+.square.light.last-move { background: #f7ec5b; }
+.square.dark.last-move { background: #cbac2a; }
 
 .square.possible::after {
   content: '';
@@ -178,7 +179,28 @@ button:active { opacity: 0.7; }
 .square .piece {
   pointer-events: none;
   line-height: 1;
-  filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.3));
+}
+
+.square .piece.white-piece {
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 #000,
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000,
+     0   -1px 0 #000,
+     0    1px 0 #000,
+    -1px  0   0 #000,
+     1px  0   0 #000;
+}
+
+.square .piece.black-piece {
+  color: #1a1a1a;
+  text-shadow:
+    -1px -1px 0 rgba(255,255,255,0.4),
+     1px -1px 0 rgba(255,255,255,0.4),
+    -1px  1px 0 rgba(255,255,255,0.4),
+     1px  1px 0 rgba(255,255,255,0.4);
 }
 
 /* Player bars */
@@ -191,6 +213,8 @@ button:active { opacity: 0.7; }
 }
 
 .player-name { font-weight: 600; }
+.player-name.white-player { color: #fff; }
+.player-name.black-player { color: #888; }
 .player-captures { font-size: 1.1rem; letter-spacing: 1px; flex: 1; }
 
 .clock {

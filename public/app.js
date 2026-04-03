@@ -128,8 +128,7 @@
     $('#btn-rematch').classList.add('hidden');
     $('#btn-rematch').textContent = 'Rematch';
     $('#btn-rematch').disabled = false;
-    $('#my-name').textContent = `${myName} (${myColor === 'w' ? 'White' : 'Black'})`;
-    $('#opponent-name').textContent = `${opponentName} (${myColor === 'w' ? 'Black' : 'White'})`;
+    updatePlayerLabels();
     renderBoard();
     updateStatus();
     addSystemMessage('New game started! Colors swapped.');
@@ -164,14 +163,20 @@
   }
 
   // --- Game ---
+  function updatePlayerLabels() {
+    $('#my-name').textContent = myName;
+    $('#my-name').className = `player-name ${myColor === 'w' ? 'white-player' : 'black-player'}`;
+    $('#opponent-name').textContent = opponentName;
+    $('#opponent-name').className = `player-name ${myColor === 'w' ? 'black-player' : 'white-player'}`;
+  }
+
   function startGame() {
     lobbyEl.classList.add('hidden');
     waitingEl.classList.add('hidden');
     gameEl.classList.remove('hidden');
     gameActive = true;
 
-    $('#my-name').textContent = `${myName} (${myColor === 'w' ? 'White' : 'Black'})`;
-    $('#opponent-name').textContent = `${opponentName} (${myColor === 'w' ? 'Black' : 'White'})`;
+    updatePlayerLabels();
 
     renderBoard();
     updateStatus();
@@ -213,7 +218,7 @@
         const piece = cols[f];
         if (piece) {
           const span = document.createElement('span');
-          span.className = 'piece';
+          span.className = `piece ${piece.color === 'w' ? 'white-piece' : 'black-piece'}`;
           span.textContent = PIECE[piece.color + piece.type];
           sq.appendChild(span);
         }
