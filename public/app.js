@@ -145,6 +145,7 @@
     $('#btn-rematch').classList.add('hidden');
     $('#btn-rematch').textContent = 'Rematch';
     $('#btn-rematch').disabled = false;
+    $('#btn-resign').classList.remove('hidden');
 
     const formattedTime = formatTime(timeMs);
     myClockEl.textContent = formattedTime;
@@ -180,6 +181,7 @@
       winner === myColor ? 'You Win!' : 'You Lose',
       `${loserLabel} ran out of time.`
     );
+    $('#btn-resign').classList.add('hidden');
     $('#btn-rematch').classList.remove('hidden');
   });
 
@@ -190,6 +192,7 @@
   socket.on('opponent-resigned', () => {
     gameActive = false;
     showModal('You Win!', 'Your opponent resigned.');
+    $('#btn-resign').classList.add('hidden');
     $('#btn-rematch').classList.remove('hidden');
   });
 
@@ -201,6 +204,7 @@
 
   socket.on('rematch-offered', () => {
     addSystemMessage('Opponent wants a rematch!');
+    $('#btn-resign').classList.add('hidden');
     $('#btn-rematch').classList.remove('hidden');
     $('#btn-rematch').textContent = 'Accept Rematch';
   });
@@ -378,17 +382,20 @@
       gameActive = false;
       const iWin = (winner === 'White' && myColor === 'w') || (winner === 'Black' && myColor === 'b');
       showModal(iWin ? 'You Win!' : 'You Lose', `Checkmate! ${winner} wins.`);
-      $('#btn-rematch').classList.remove('hidden');
+      $('#btn-resign').classList.add('hidden');
+    $('#btn-rematch').classList.remove('hidden');
     } else if (chess.isStalemate()) {
       statusEl.textContent = 'Stalemate - Draw';
       gameActive = false;
       showModal('Draw', 'Stalemate!');
-      $('#btn-rematch').classList.remove('hidden');
+      $('#btn-resign').classList.add('hidden');
+    $('#btn-rematch').classList.remove('hidden');
     } else if (chess.isDraw()) {
       statusEl.textContent = 'Draw';
       gameActive = false;
       showModal('Draw', 'The game is a draw.');
-      $('#btn-rematch').classList.remove('hidden');
+      $('#btn-resign').classList.add('hidden');
+    $('#btn-rematch').classList.remove('hidden');
     } else {
       const turn = chess.turn() === 'w' ? 'White' : 'Black';
       statusEl.textContent = `${turn} to move${chess.isCheck() ? ' (Check!)' : ''}`;
@@ -490,7 +497,8 @@
       gameActive = false;
       statusEl.textContent = 'You resigned';
       showModal('You Resigned', 'Better luck next time!');
-      $('#btn-rematch').classList.remove('hidden');
+      $('#btn-resign').classList.add('hidden');
+    $('#btn-rematch').classList.remove('hidden');
     }
   });
 

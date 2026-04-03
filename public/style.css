@@ -460,21 +460,17 @@ button:active { opacity: 0.7; }
   padding: 0.5rem 1rem;
 }
 
-/* Game buttons */
-.game-buttons {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-top: 1px solid #444;
+/* Inline bar buttons (resign / rematch) */
+.bar-btn {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  min-height: 28px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
-.game-buttons button {
-  flex: 1;
-  min-height: 44px;
-}
-
 #btn-resign { background: #c33; }
+#btn-rematch { background: var(--accent); }
 
 /* ===================== Modal ===================== */
 #modal-overlay {
@@ -597,17 +593,6 @@ button:active { opacity: 0.7; }
     padding: 0.4rem 0.5rem;
   }
 
-  /* Buttons at bottom, always visible */
-  .game-buttons {
-    padding: 0.4rem;
-    flex-shrink: 0;
-  }
-
-  .game-buttons button {
-    font-size: 0.9rem;
-    min-height: 44px;
-  }
-
   /* Lobby */
   #lobby h1 {
     font-size: 2rem;
@@ -718,9 +703,6 @@ button:active { opacity: 0.7; }
 
   .player-captures { font-size: 1.2rem; }
 
-  .game-buttons {
-    flex-shrink: 0;
-  }
 
   /* Pick screen larger on tablet */
   .pick-btn {
@@ -830,8 +812,6 @@ button:active { opacity: 0.7; }
 
   #chat-messages { height: 50px; font-size: 0.8rem; }
   .game-info { padding: 0.4rem; font-size: 0.8rem; }
-  .game-buttons { padding: 0.4rem; }
-  .game-buttons button { min-height: 36px; font-size: 0.8rem; }
   .chat-input-row input { min-height: 36px; font-size: 14px; }
   .chat-input-row button { min-height: 36px; font-size: 0.8rem; }
 }
