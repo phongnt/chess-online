@@ -28,6 +28,14 @@
 
   const PIECE = Chess.UNICODE;
 
+  // Image-based piece set (Cburnett)
+  const PIECE_IMG = {
+    wk: 'img/pieces/wK.svg', wq: 'img/pieces/wQ.svg', wr: 'img/pieces/wR.svg',
+    wb: 'img/pieces/wB.svg', wn: 'img/pieces/wN.svg', wp: 'img/pieces/wP.svg',
+    bk: 'img/pieces/bK.svg', bq: 'img/pieces/bQ.svg', br: 'img/pieces/bR.svg',
+    bb: 'img/pieces/bB.svg', bn: 'img/pieces/bN.svg', bp: 'img/pieces/bP.svg',
+  };
+
   // --- Lobby ---
   $('#btn-create').addEventListener('click', () => {
     myName = $('#player-name').value.trim() || 'Player';
@@ -277,10 +285,12 @@
 
         const piece = cols[f];
         if (piece) {
-          const span = document.createElement('span');
-          span.className = `piece ${piece.color === 'w' ? 'white-piece' : 'black-piece'}`;
-          span.textContent = PIECE[piece.color + piece.type];
-          sq.appendChild(span);
+          const img = document.createElement('img');
+          img.className = 'piece-img';
+          img.src = PIECE_IMG[piece.color + piece.type];
+          img.alt = PIECE[piece.color + piece.type];
+          img.draggable = false;
+          sq.appendChild(img);
         }
 
         sq.addEventListener('click', () => onSquareClick(squareName));
@@ -414,18 +424,25 @@
 
     const capturedBy = (color) => {
       const opp = color === 'w' ? 'b' : 'w';
-      let str = '';
+      const frag = document.createDocumentFragment();
       for (const t of ['q', 'r', 'b', 'n', 'p']) {
         const diff = initial[t] - count[opp][t];
-        for (let i = 0; i < diff; i++) str += PIECE[opp + t];
+        for (let i = 0; i < diff; i++) {
+          const img = document.createElement('img');
+          img.className = 'capture-img';
+          img.src = PIECE_IMG[opp + t];
+          img.alt = PIECE[opp + t];
+          img.draggable = false;
+          frag.appendChild(img);
+        }
       }
-      return str;
+      return frag;
     };
 
-    const myCaptures = capturedBy(myColor);
-    const oppCaptures = capturedBy(myColor === 'w' ? 'b' : 'w');
-    $('#my-captures').textContent = myCaptures;
-    $('#opponent-captures').textContent = oppCaptures;
+    $('#my-captures').innerHTML = '';
+    $('#my-captures').appendChild(capturedBy(myColor));
+    $('#opponent-captures').innerHTML = '';
+    $('#opponent-captures').appendChild(capturedBy(myColor === 'w' ? 'b' : 'w'));
   }
 
   // --- Chat ---

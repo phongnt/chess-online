@@ -332,31 +332,20 @@ button:active { opacity: 0.7; }
   border: 5px solid var(--possible);
 }
 
-.square .piece {
+.square .piece-img {
   pointer-events: none;
-  line-height: 1;
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+  filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.3));
 }
 
-.square .piece.white-piece {
-  color: #fff;
-  text-shadow:
-    -1px -1px 0 #000,
-     1px -1px 0 #000,
-    -1px  1px 0 #000,
-     1px  1px 0 #000,
-     0   -1px 0 #000,
-     0    1px 0 #000,
-    -1px  0   0 #000,
-     1px  0   0 #000;
-}
-
-.square .piece.black-piece {
-  color: #1a1a1a;
-  text-shadow:
-    -1px -1px 0 rgba(255,255,255,0.4),
-     1px -1px 0 rgba(255,255,255,0.4),
-    -1px  1px 0 rgba(255,255,255,0.4),
-     1px  1px 0 rgba(255,255,255,0.4);
+.capture-img {
+  height: 1.1em;
+  width: 1.1em;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 1px;
 }
 
 /* ===================== Player bars ===================== */
