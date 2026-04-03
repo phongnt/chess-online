@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Lobby Screen -->
+  <div id="lobby">
+    <h1>Chess Online</h1>
+    <div class="lobby-card">
+      <input type="text" id="player-name" placeholder="Your name" maxlength="20" autofocus>
+      <div class="lobby-actions">
+        <button id="btn-create">Create Room</button>
+        <div class="join-row">
+          <input type="text" id="room-code" placeholder="Room code" maxlength="6">
+          <button id="btn-join">Join</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waiting Screen -->
+  <div id="waiting" class="hidden">
+    <h2>Waiting for opponent...</h2>
+    <p>Share this room code:</p>
+    <div class="room-code-display" id="room-code-display"></div>
+    <p class="hint">Other players on your network can join at<br><span id="lan-url"></span></p>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game" class="hidden">
+    <div class="game-layout">
+      <div class="board-section">
+        <div class="player-bar top">
+          <span class="player-name" id="opponent-name"></span>
+          <span class="player-captures" id="opponent-captures"></span>
+        </div>
+        <div id="board"></div>
+        <div class="player-bar bottom">
+          <span class="player-name" id="my-name"></span>
+          <span class="player-captures" id="my-captures"></span>
+        </div>
+      </div>
+      <div class="side-panel">
+        <div class="game-info">
+          <span id="status-text">White to move</span>
+        </div>
+        <div id="move-list"></div>
+        <div id="chat-box">
+          <div id="chat-messages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Chat...">
+            <button id="btn-send-chat">Send</button>
+          </div>
+        </div>
+        <div class="game-buttons">
+          <button id="btn-resign">Resign</button>
+          <button id="btn-rematch" class="hidden">Rematch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal overlay for game end -->
+  <div id="modal-overlay" class="hidden">
+    <div class="modal">
+      <h2 id="modal-title"></h2>
+      <p id="modal-text"></p>
+      <button id="modal-close">OK</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="chess.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
