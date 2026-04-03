@@ -11,6 +11,7 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 const DEFAULT_TIME_MS = 10 * 60 * 1000;
+const INCREMENT_MS = 3000;
 
 const rooms = new Map();
 
@@ -59,7 +60,7 @@ function switchClock(room) {
   const now = Date.now();
   const elapsed = now - room.timers.lastTickAt;
   const color = room.timers.activeColor;
-  room.timers[color] = Math.max(0, room.timers[color] - elapsed);
+  room.timers[color] = Math.max(0, room.timers[color] - elapsed) + INCREMENT_MS;
   room.timers.activeColor = color === 'w' ? 'b' : 'w';
   room.timers.lastTickAt = now;
 }
