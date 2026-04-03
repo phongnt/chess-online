@@ -43,6 +43,20 @@ Open the Local URL on your machine and share the LAN URL with your opponent.
 4. Both players pick their color (first pick wins) and time control
 5. Play!
 
+## Docker
+
+```bash
+docker build -t chess-online .
+docker run -d --name my-chess-online -p 3000:3000 chess-online
+docker run
+```
+
+Then open `http://localhost:3000`. Use `--network host` on Linux for automatic LAN access:
+
+```bash
+docker run --network host chess-online
+```
+
 ## Tech Stack
 
 - **Express** + **Socket.IO** — real-time game server
