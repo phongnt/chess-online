@@ -253,6 +253,13 @@
     $('#my-name').className = `player-name ${myColor === 'w' ? 'white-player' : 'black-player'}`;
     $('#opponent-name').textContent = opponentName;
     $('#opponent-name').className = `player-name ${myColor === 'w' ? 'black-player' : 'white-player'}`;
+    // Style player cards based on chess color
+    const myCard = $('.player-card.bottom');
+    const oppCard = $('.player-card.top');
+    myCard.classList.remove('card-white', 'card-black');
+    oppCard.classList.remove('card-white', 'card-black');
+    myCard.classList.add(myColor === 'w' ? 'card-white' : 'card-black');
+    oppCard.classList.add(myColor === 'w' ? 'card-black' : 'card-white');
   }
 
   // --- Board ---
@@ -437,13 +444,18 @@
       const frag = document.createDocumentFragment();
       for (const t of ['q', 'r', 'b', 'n', 'p']) {
         const diff = initial[t] - count[opp][t];
-        for (let i = 0; i < diff; i++) {
-          const img = document.createElement('img');
-          img.className = 'capture-img';
-          img.src = PIECE_IMG[opp + t];
-          img.alt = PIECE[opp + t];
-          img.draggable = false;
-          frag.appendChild(img);
+        if (diff > 0) {
+          const group = document.createElement('span');
+          group.className = `capture-group capture-${opp}`;
+          for (let i = 0; i < diff; i++) {
+            const img = document.createElement('img');
+            img.className = 'capture-img';
+            img.src = PIECE_IMG[opp + t];
+            img.alt = PIECE[opp + t];
+            img.draggable = false;
+            group.appendChild(img);
+          }
+          frag.appendChild(group);
         }
       }
       return frag;

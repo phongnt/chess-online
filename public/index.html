@@ -61,26 +61,37 @@
   <!-- Game Screen -->
   <div id="game" class="hidden">
     <div class="game-layout">
-      <div class="board-section">
-        <div class="player-bar top">
+      <!-- Left panel: players -->
+      <div class="left-panel">
+        <div class="player-card top">
+          <div class="player-card-header">
+            <span class="player-label">Opponent</span>
+            <span class="clock" id="opponent-clock">10:00</span>
+          </div>
           <span class="player-name" id="opponent-name"></span>
-          <span class="player-captures" id="opponent-captures"></span>
-          <span class="clock" id="opponent-clock">10:00</span>
+          <div class="player-captures" id="opponent-captures"></div>
         </div>
-        <div id="board"></div>
-        <div class="player-bar bottom">
+        <div class="player-card bottom">
+          <div class="player-card-header">
+            <span class="player-label">You</span>
+            <span class="clock" id="my-clock">10:00</span>
+          </div>
           <span class="player-name" id="my-name"></span>
-          <span class="player-captures" id="my-captures"></span>
-          <button id="btn-resign" class="bar-btn">Resign</button>
-          <button id="btn-rematch" class="bar-btn hidden">Rematch</button>
-          <span class="clock" id="my-clock">10:00</span>
+          <div class="player-captures" id="my-captures"></div>
+          <div class="player-card-actions">
+            <button id="btn-resign" class="bar-btn">Resign</button>
+            <button id="btn-rematch" class="bar-btn hidden">Rematch</button>
+          </div>
         </div>
       </div>
-      <div class="side-panel">
-        <div class="game-info">
-          <span id="status-text">White to move</span>
-        </div>
-        <div id="move-list"></div>
+      <!-- Center: board -->
+      <div class="board-section">
+        <div id="board"></div>
+      </div>
+      <!-- Right panel: chat -->
+      <div class="right-panel">
+        <span id="status-text" class="hidden"></span>
+        <div id="move-list" class="hidden"></div>
         <div id="chat-box">
           <div id="chat-messages"></div>
           <div class="chat-input-row">
