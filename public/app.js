@@ -288,6 +288,9 @@
         }
 
         const piece = cols[f];
+        if (piece && piece.type === 'k' && piece.color === chess.turn() && chess.isCheck()) {
+          sq.classList.add('in-check');
+        }
         if (piece) {
           const img = document.createElement('img');
           img.className = 'piece-img';
